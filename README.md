@@ -12,6 +12,8 @@ Install **nodejs** and **npm** and then, simply run `npm install` and `npm start
 
 You can use different grant types to get an access token. By now, `password`, `client_credentials` and `refresh_token` are available.
 
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/d65397524249d620347b)
+
 ### Checking example data
 
 #### With *password* grant
