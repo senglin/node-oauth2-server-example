@@ -1,3 +1,9 @@
+const jwtMixin = require('oauth2-server-jwt');
+const gentoken = require('./gentoken');
+const promisify = require('promisify-any');
+const jwt = require('jsonwebtoken');
+const InvalidTokenError = require('@compwright/oauth2-server/lib/errors/invalid-token-error');
+const InvalidClientError = require('@compwright/oauth2-server/lib/errors/invalid-client-error');
 /**
  * Configuration.
  */
@@ -9,6 +15,7 @@ var config = {
 		clientSecret: 'secret',
 		grants: [
 			'password',
+			'phonenumber',
 			'refresh_token'
 		],
 		redirectUris: []
@@ -85,6 +92,47 @@ var saveToken = function(token, client, user) {
 	return token;
 };
 
+// currently using symmetric key
+var accessTokenSecret ='abcde';                   // String (required)
+var refreshTokenSecret = '12345';                 // String (required)
+var issuer = 'fabrikam.com';                      // String (required)
+var userId = 'id';                                // String
+var algorithms = ['HS256'];
+
+
+// This is where we implement the jwt tokens
+const accessToken = gentoken({
+	type: 'accessToken',
+	secret: accessTokenSecret,
+	issuer, userId
+});
+
+    
+const refreshToken = gentoken({
+	type: 'refreshToken',
+	secret: refreshTokenSecret,
+	issuer, userId
+});
+
+const signAsync = promisify(jwt.sign, 3);
+const verifyAsync = promisify(jwt.verify, 3);
+
+var saveToken2 = async function(token, client, user) {
+	const newToken = { ...token, client, user: user.username };
+
+	// eslint-disable-next-line no-unused-vars
+	const { payload, secret, iat, nbf, exp, ...params } = accessToken(token, client, user);
+	newToken.accessToken = await signAsync(payload, secret, params);
+
+	if (token.refreshToken) {
+		// eslint-disable-next-line no-unused-vars
+		const { payload, secret, iat, nbf, exp, ...params } = refreshToken(token, client, user);
+		newToken.refreshToken = await signAsync(payload, secret, params);
+	}
+
+	return newToken;
+};
+
 /*
  * Method used only by password grant type.
  */
@@ -131,6 +179,44 @@ var getRefreshToken = function(refreshToken) {
 	return tokens[0];
 };
 
+var getRefreshToken2 = async function(token) {
+	try {
+		var { exp, aud, type, scope, user } = await verifyAsync(token, refreshTokenSecret, {
+			algorithms,
+			issuer
+		});
+	} catch (e) {
+		throw new InvalidTokenError();
+	}
+
+	if (type !== 'refreshToken') {
+		throw new InvalidTokenError();
+	}
+
+	// not sure what this code is for
+
+	// if (this.getClient) {
+	// 	try {
+	// 		var client = aud && await this.getClient(aud, null);
+	// 		if (!client) {
+	// 			throw new Error();
+	// 		}
+	// 	} catch (e) {
+	// 		throw new InvalidClientError();
+	// 	}
+	// }
+
+	return {
+		refreshToken: token,
+		refreshTokenExpiresAt: new Date(exp * 1000),
+		scope,
+		client: {id: aud},
+		// workaround because I commented the above code
+		// client: client || { id: aud },
+		user
+	};
+};
+
 var revokeToken = function(token) {
 
 	config.tokens = config.tokens.filter(function(savedToken) {
@@ -153,9 +239,19 @@ var revokeToken = function(token) {
 module.exports = {
 	getAccessToken: getAccessToken,
 	getClient: getClient,
-	saveToken: saveToken,
+	saveToken: saveToken2,                      //switch to JWT implementation
 	getUser: getUser,
 	getUserFromClient: getUserFromClient,
-	getRefreshToken: getRefreshToken,
-	revokeToken: revokeToken
+	getRefreshToken: getRefreshToken2,          //switch to JWT implementation
+	revokeToken: revokeToken,
+	// https://github.com/compwright/oauth2-server-jwt
+	//  enable this to use jwtMixin's implementation of JWT tokens
+	// ...jwtMixin({
+	// 	accessTokenSecret :'abcde',                  // String (required)
+	// 	refreshTokenSecret : '12345',                 // String (required)
+	// 	authorizationCodeSecret : '54321',            // String (required)
+	// 	issuer : 'realtor.com',                             // String (required)
+	// 	userId: 'id',                       // String
+	// 	algorithms: ['HS256']               // Array[String]
+	// })
 };

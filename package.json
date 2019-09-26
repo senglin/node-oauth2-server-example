@@ -29,9 +29,11 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "@compwright/oauth2-server": "^3.0.3",
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
-    "oauth2-server": "^3.0.1"
+    "oauth2-server": "^3.0.1",
+    "oauth2-server-jwt": "^1.1.6"
   },
   "engines": {
     "node": ">=4.0.0",
