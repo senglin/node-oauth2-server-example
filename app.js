@@ -9,6 +9,7 @@ var express = require('express'),
 	Response = OAuth2Server.Response;
 
 var PhoneNumberGrantType = require('./PhoneNumberGrantType')
+var EmailGrantType = require('./EmailGrantType')
 
 var app = express();
 
@@ -34,7 +35,8 @@ app.listen(3000);
 let options = {
 	requireClientAuthentication: {password: false},
 	extendedGrantTypes: {
-		'phonenumber': PhoneNumberGrantType
+		'phonenumber': PhoneNumberGrantType,
+		'password': EmailGrantType
 	}
 };
 	

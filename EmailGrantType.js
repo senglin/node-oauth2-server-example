@@ -121,7 +121,7 @@ PhoneNumberGrantType.prototype.saveToken = function (user, client, scope) {
                 refreshToken: refreshToken,
                 refreshTokenExpiresAt: refreshTokenExpiresAt,
                 scope: scope,
-                sourceGrantType: 'phonenumber'
+                sourceGrantType: 'password'
             };
 
             return promisify(this.model.saveToken, 3).call(this.model, token, client, user);
